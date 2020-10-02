@@ -240,18 +240,35 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
         variable = variable_dict[variable]
         dff = df.loc[df["Estación"].isin([selected])][[variable, "Profundidad"]]
 
-        fig2d = go.Figure(data=go.Scatter())
+        fig3d = go.Figure(data=go.Scatter3d())
         title = []
         for point in selectedData['points']:
             point = point["customdata"]
             title.append(point)#the title of the graph
-            tdf = df.loc[df["Estación"]==point][[variable, "Profundidad"]]
-            fig2d.add_trace(go.Scatter(x=tdf[variable], y=tdf["Profundidad"], mode="markers+lines", name=point))
-        fig2d.update_layout(title=f"Perfil(es) de {variable}: {' ,'.join(title)}", margin={"r":0,"t":30,"l":0,"b":0},
-                            xaxis_title=variable, yaxis_title="Profundidad"
-                            )
-        fig2d.update_xaxes(range=[df[variable].min(), df[variable].max()])
-        return fig2d
+            tdf = df.loc[df["Estación"]==point][[variable, "Profundidad", "Latitud"]]
+            fig3d.add_trace(go.Scatter3d(x=tdf[variable],
+                                 y=tdf["Latitud"],
+                                 z=tdf["Profundidad"],
+                                 mode="markers+lines",
+                                 marker={"size":5, "opacity":0.5},
+                                 name=point
+                                ))
+        fig3d.update_layout(margin={"r":0,"t":50,"l":0,"b":0},
+                           title=f"Perfil de {variable}: {' ,'.join(title)}",
+                           legend=dict(
+                            yanchor="top",
+                            y=0.99,
+                            xanchor="left",
+                            x=0.01),
+                            scene=dict(
+                                zaxis=dict(title="Profundidad"),
+                                xaxis=dict(title=variable),
+                                yaxis=dict(title="Latitud"),
+                                aspectratio=dict(x=1, y=1, z=1),
+                                ),
+                    )
+        fig3d.update_xaxes(range=[df[variable].min(), df[variable].max()])
+        return fig3d
 
 #kriging callback
 @app.callback(Output("kriging-fig","figure"),
