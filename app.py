@@ -31,9 +31,10 @@ fig = go.Figure(data=go.Scattermapbox(
         lat=df["Latitud"].unique().round(2),
         text=df["Estación"].unique(), textposition="bottom right",
         mode="markers+text",
+        customdata=df["Estación"].unique(),
         marker={"size":10, "symbol":["circle-stroked" for x in range(8)]}
         ))
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},clickmode='event+select',
                   mapbox= dict(style="light", center={"lat":-42.7,"lon":-73.5}, zoom=10, accesstoken=token))
 
 #top-left point
@@ -153,7 +154,9 @@ app.layout = dbc.Container(
                                                 [
                                                     dbc.CardHeader("Estaciones de perfiles CTD-O"),
                                                     dbc.CardBody(dcc.Graph(id="map", figure=fig,
-                                                                            clickData={'points':[{"customdata": "E1"}]}))
+                                                                            clickData={'points':[{"customdata": "E1"}]}
+                                                                          )
+                                                                )
                                                 ]
                                             )
                                         ], xl=6, md=12
@@ -205,32 +208,66 @@ app.layout = dbc.Container(
                     ], fluid=True
 )
 #callbacks
-@app.callback(Output("perfil-scatter","figure"),
-              [Input("map", "clickData"),
-              Input("header-tab","active_tab")])
-def perfil_scatter_maker(clickdata, variable):
-    print(clickdata)
-    try:
-        clickdata = clickdata['points'][0]["customdata"]
-    except:
-        clickdata = clickdata['points'][0]["text"]
-    variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
-                    "oxisat-tab":"Oxígeno (%Sat)",
-                    "oxiteo-tab":"Oxígeno",
-                    "temp-tab":"Temperatura",
-                    "salin-tab":"Salinidad",
-                    "fluo-tab":"Fluorescencia",
-                    "sigma-t-tab":"Densidad (sigma-t)",
-                    "aou-tab":"AOU"
-                    }
-    variable = variable_dict[variable]
-    dff = df.loc[df["Estación"]==clickdata][[variable, "Profundidad"]]
+#perfil scatter when selected
+@app.callback(Output("perfil-scatter", "figure"),
+             [Input("map", "selectedData"),
+              Input("map", "clickData"),
+              Input("header-tab", "active_tab")])
+def perfiles_scatter_maker(selectedData, clickData, variable):
+    if clickData['points'][0]["customdata"] in df["Estación"].unique() and selectedData == None:
+        print(clickData)
+        try:
+            clickdata = clickData['points'][0]["customdata"]
+        except:
+            clickdata = clickData['points'][0]["text"]
+        variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
+                        "oxisat-tab":"Oxígeno (%Sat)",
+                        "oxiteo-tab":"Oxígeno",
+                        "temp-tab":"Temperatura",
+                        "salin-tab":"Salinidad",
+                        "fluo-tab":"Fluorescencia",
+                        "sigma-t-tab":"Densidad (sigma-t)",
+                        "aou-tab":"AOU"
+                        }
+        variable = variable_dict[variable]
+        dff = df.loc[df["Estación"]==clickdata][[variable, "Profundidad"]]
 
-    fig2d = go.Figure(data=go.Scatter(x=dff[variable],
-                                      y=dff["Profundidad"],
-                                      mode="markers+lines"))
-    fig2d.update_layout(title=f"Perfil de {variable}: {clickdata}", margin={"r":0,"t":30,"l":0,"b":0})
-    return fig2d
+        fig2d = go.Figure(data=go.Scatter(x=dff[variable],
+                                          y=dff["Profundidad"],
+                                          mode="markers+lines"))
+        fig2d.update_layout(title=f"Perfil de {variable}: {clickdata}", margin={"r":0,"t":30,"l":0,"b":0},
+                            xaxis_title=variable, yaxis_title="Profundidad")
+        return fig2d
+
+    if selectedData != None:
+        try:
+            selected = selectedData['points'][0]["customdata"]
+        except:
+            selected = selected['points'][0]["text"]
+        variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
+                        "oxisat-tab":"Oxígeno (%Sat)",
+                        "oxiteo-tab":"Oxígeno",
+                        "temp-tab":"Temperatura",
+                        "salin-tab":"Salinidad",
+                        "fluo-tab":"Fluorescencia",
+                        "sigma-t-tab":"Densidad (sigma-t)",
+                        "aou-tab":"AOU"
+                        }
+        variable = variable_dict[variable]
+        dff = df.loc[df["Estación"].isin([selected])][[variable, "Profundidad"]]
+
+        fig2d = go.Figure(data=go.Scatter())
+        title = []
+        for point in selectedData['points']:
+            point = point["customdata"]
+            title.append(point)#the title of the graph
+            tdf = df.loc[df["Estación"]==point][[variable, "Profundidad"]]
+            fig2d.add_trace(go.Scatter(x=tdf[variable], y=tdf["Profundidad"], mode="markers+lines", name=point))
+        fig2d.update_layout(title=f"Perfil(es) de {variable}: {' ,'.join(title)}", margin={"r":0,"t":30,"l":0,"b":0},
+                            xaxis_title=variable, yaxis_title="Profundidad"
+                            )
+        return fig2d
+
 #kriging callback
 @app.callback(Output("kriging-fig","figure"),
               [Input("depth-slider","value"),
@@ -249,18 +286,23 @@ def kriging_fig_maker(value, variable):
     #add profiles as traces
     def add_traces(estacion, fig, variable):
         dff = df.loc[(df["Estación"]==estacion)&(df["Profundidad"]>=-80)]
-        return fig.add_trace(go.Scatter3d(x=dff["Longitud"], y=dff["Latitud"], z=dff[variable], mode="lines", name=estacion))
+        return fig.add_trace(go.Scatter3d(x=dff["Longitud"], y=dff["Latitud"], z=dff[variable], mode="lines", name=estacion,
+                                         hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
 
     krig_fig = go.Figure([
                               go.Surface(x=grid_x, y=grid_y, z=kriging(value, variable),
                               cmax=df[variable].mean()+(df[variable].std()*2),
                               cmin=df[variable].mean()-(df[variable].std()*2),
                               colorscale="RdBu" if variable !="Temperatura" else "RdBu_r",
-                              uirevision=True
+                              uirevision=True,
+                              hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}',
                               )
                           ], layout=go.Layout(uirevision=True))
 
     #adding the traces
+    krig_fig.add_trace(go.Scatter3d(x=[-73.608872], y=[-42.724906], z=[df.loc[df["Estación"]=="E5"][variable].mean()],
+                                    name="CENTRO", mode="markers",
+                                    hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
     add_traces("E1", krig_fig, variable)
     add_traces("E2", krig_fig, variable)
     add_traces("E3", krig_fig, variable)
