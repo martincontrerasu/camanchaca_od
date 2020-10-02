@@ -62,7 +62,7 @@ def kriging(depth, variable):
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LITERA])
 server = app.server
-app.title = "OD analysis"
+app.title = "OD Camanchaca"
 
 lore_ipsum = """Dashboard de variables oceanográficas: Oxígeno (mg/L, %sat y teórico), temperatura, salinidad,
                 sigma-t (densidad del agua), AOU y fluorescencia cómo clorofila a. Mapa de estaciones, perfiles y
@@ -131,7 +131,7 @@ app.layout = dbc.Container(
                                         [
                                             dbc.Card(
                                                 [
-                                                    dbc.CardHeader("Estaciones de perfiles CTD-O"),
+                                                    dbc.CardHeader(f"Estaciones de perfiles CTD-O |  {df['Fecha'][0]}"),
                                                     dbc.CardBody(dcc.Graph(id="map", figure=fig,
                                                                             clickData={'points':[{"customdata": "E1"}]}
                                                                           )
