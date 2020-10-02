@@ -64,57 +64,34 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LITERA])
 server = app.server
 app.title = "OD analysis"
 
-lore_ipsum = """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
-                ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-                 ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-                 reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur
-                  sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim
-                  id est laborum."""
+lore_ipsum = """Dashboard de variables oceanográficas: Oxígeno (mg/L, %sat y teórico), temperatura, salinidad,
+                sigma-t (densidad del agua), AOU y fluorescencia cómo clorofila a. Mapa de estaciones, perfiles y
+                cubo 3d para visualizar interactivamente los datos del área de estudio."""
 
-lore_ipsum2 = """Dictumst quis a eros hendrerit vulputate proin donec praesent, sapien nunc pellentesque nam urna
-                ad consequat, parturient massa nisi augue nibh gravida faucibus. At luctus semper rutrum feugiat
-                quis, class facilisi torquent neque hac nam, eu lacus aliquam nunc. Class pretium iaculis felis
-                leo mattis id, malesuada faucibus sodales habitant purus hac morbi, nascetur enim hendrerit mi bibendum.
-                Porttitor sem gravida phasellus tempor eleifend iaculis, habitant faucibus id nunc fames felis, at vehicula
-                rhoncus leo turpis."""
-def modal_maker(id, wholetext):
-    """returns a dbc.Modal its inpus are an id (string), a header (string text) and a
-     list of text, every item in the list will be an html.P paragraph"""
-    return dbc.Modal(
-       [
-           dbc.ModalHeader(wholetext[0]),
-           dbc.ModalBody([html.P(text) for text in wholetext[1:]]),
-           dbc.ModalFooter(
-               dbc.Button(
-                   "Cerrar", id=id+"-close-button", className="ml-auto"
-               )
-           ),
-       ],
-       id=id+"-modal",
-       centered=False,
-       scrollable=True
-    )
+lore_ipsum2 = """Haga clic en las estaciones para ver perfiles individuales o selecciones varios (herramienta seleccionar del mapa).
+En el gráfico 3d seleccione la profundidad en la barra ubicada a la izquierda. """
+
 def card_maker(card_text):
     """returns a dbc.Card its inpus are an id (string) and a
      list of text, the first item correspond to the header and every other
       item in the list will be an html.P paragraph"""
     return dbc.Card(
         dbc.CardBody(
-            html.P(card_text, className="card-text")
+            [
+                html.P(card_text, className="card-text"),
+                html.P(lore_ipsum2)
+            ]
         ),
         className="mt-3",
     )
-modal_text = ["¿A qué corresponde la información desplegada?",
-              "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
-              "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-              "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-              "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum",
-              "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
+
 #first row card
 oxigeno_mgl_tab = card_maker(lore_ipsum)
 oxigeno_sat_tab = card_maker(lore_ipsum)
 oxigeno_teo_tab = card_maker(lore_ipsum)
 temperatura_tab = card_maker(lore_ipsum)
+sigmat_tab = card_maker(lore_ipsum)
+aou_tab = card_maker(lore_ipsum)
 salinidad_tab = card_maker(lore_ipsum)
 fluorescenia_tab = card_maker(lore_ipsum)
 
@@ -134,6 +111,8 @@ app.layout = dbc.Container(
                                                         dbc.Tab(oxigeno_teo_tab, label="Oxígeno teórico", tab_id="oxiteo-tab"),
                                                         dbc.Tab(temperatura_tab, label="Temperatura °C", tab_id="temp-tab"),
                                                         dbc.Tab(salinidad_tab, label="Salinidad PSU", tab_id="salin-tab"),
+                                                        dbc.Tab(sigmat_tab, label="sigma-t", tab_id="sigmat-tab"),
+                                                        dbc.Tab(aou_tab, label="AOU", tab_id="aou-tab"),
                                                         dbc.Tab(fluorescenia_tab, label="Fluorescencia", tab_id="fluo-tab")
 
                                                     ],
@@ -225,6 +204,8 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
                         "oxiteo-tab":"Oxígeno",
                         "temp-tab":"Temperatura",
                         "salin-tab":"Salinidad",
+                        "sigmat-tab":"Densidad (sigma-t)",
+                        "aou-tab":"AOU",
                         "fluo-tab":"Fluorescencia",
                         "sigma-t-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU"
@@ -237,6 +218,7 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
                                           mode="markers+lines"))
         fig2d.update_layout(title=f"Perfil de {variable}: {clickdata}", margin={"r":0,"t":30,"l":0,"b":0},
                             xaxis_title=variable, yaxis_title="Profundidad")
+        fig2d.update_xaxes(range=[df[variable].min(), df[variable].max()])
         return fig2d
 
     if selectedData != None:
@@ -249,6 +231,8 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
                         "oxiteo-tab":"Oxígeno",
                         "temp-tab":"Temperatura",
                         "salin-tab":"Salinidad",
+                        "sigmat-tab":"Densidad (sigma-t)",
+                        "aou-tab":"AOU",
                         "fluo-tab":"Fluorescencia",
                         "sigma-t-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU"
@@ -266,6 +250,7 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
         fig2d.update_layout(title=f"Perfil(es) de {variable}: {' ,'.join(title)}", margin={"r":0,"t":30,"l":0,"b":0},
                             xaxis_title=variable, yaxis_title="Profundidad"
                             )
+        fig2d.update_xaxes(range=[df[variable].min(), df[variable].max()])
         return fig2d
 
 #kriging callback
@@ -278,6 +263,8 @@ def kriging_fig_maker(value, variable):
                     "oxiteo-tab":"Oxígeno",
                     "temp-tab":"Temperatura",
                     "salin-tab":"Salinidad",
+                    "sigmat-tab":"Densidad (sigma-t)",
+                    "aou-tab":"AOU",
                     "fluo-tab":"Fluorescencia",
                     "sigma-t-tab":"Densidad (sigma-t)",
                     "aou-tab":"AOU"
