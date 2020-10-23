@@ -24,7 +24,13 @@ mapbox_style_sat = "mapbox://styles/ritmandotpy/ckf2s0kv56oxm19os5sfh8lfy"
 
 #reading the data
 df = pd.read_csv("data/PERFILES CTDO PILPILEHUE.csv")
-
+df= pd.read_csv("data/test.csv", encoding="latin1")
+#
+# for estacion in df_oct["Estación"].unique():
+#     df_oct.loc[df_oct["Estación"]==estacion, "Latitud"] = df.loc[df["Estación"]==estacion]["Latitud"]
+#     df_oct.loc[df_oct["Estación"]==estacion, "Longitud"] = df.loc[df["Estación"]==estacion]["Longitud"]
+#
+# df_oct.to_csv("test.csv", encoding="latin1")
 #stations mapbox
 fig = go.Figure(data=go.Scattermapbox(
         lon=df["Longitud"].unique().round(2),
@@ -201,12 +207,12 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
             clickdata = clickData['points'][0]["text"]
         variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
                         "oxisat-tab":"Oxígeno (%Sat)",
-                        "oxiteo-tab":"Oxígeno",
-                        "temp-tab":"Temperatura",
-                        "salin-tab":"Salinidad",
+                        "oxiteo-tab":"Oxígeno (ml/L)",
+                        "temp-tab":"Temperatura (°C)",
+                        "salin-tab":"Salinidad (PSU)",
                         "sigmat-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU",
-                        "fluo-tab":"Fluorescencia",
+                        "fluo-tab":"Fluorescencia (mg/m3)",
                         "sigma-t-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU"
                         }
@@ -228,12 +234,12 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
             selected = selected['points'][0]["text"]
         variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
                         "oxisat-tab":"Oxígeno (%Sat)",
-                        "oxiteo-tab":"Oxígeno",
-                        "temp-tab":"Temperatura",
-                        "salin-tab":"Salinidad",
+                        "oxiteo-tab":"Oxígeno (ml/L)",
+                        "temp-tab":"Temperatura (°C)",
+                        "salin-tab":"Salinidad (PSU)",
                         "sigmat-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU",
-                        "fluo-tab":"Fluorescencia",
+                        "fluo-tab":"Fluorescencia (mg/m3) ",
                         "sigma-t-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU"
                         }
@@ -270,68 +276,68 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
         fig3d.update_xaxes(range=[df[variable].min(), df[variable].max()])
         return fig3d
 
-#kriging callback
-@app.callback(Output("kriging-fig","figure"),
-              [Input("depth-slider","value"),
-               Input("header-tab","active_tab")])
-def kriging_fig_maker(value, variable):
-    variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
-                    "oxisat-tab":"Oxígeno (%Sat)",
-                    "oxiteo-tab":"Oxígeno",
-                    "temp-tab":"Temperatura",
-                    "salin-tab":"Salinidad",
-                    "sigmat-tab":"Densidad (sigma-t)",
-                    "aou-tab":"AOU",
-                    "fluo-tab":"Fluorescencia",
-                    "sigma-t-tab":"Densidad (sigma-t)",
-                    "aou-tab":"AOU"
-                    }
-    variable = variable_dict[variable]
-    #add profiles as traces
-    def add_traces(estacion, fig, variable):
-        dff = df.loc[(df["Estación"]==estacion)&(df["Profundidad"]>=-80)]
-        return fig.add_trace(go.Scatter3d(x=dff["Longitud"], y=dff["Latitud"], z=dff[variable], mode="lines", name=estacion,
-                                         hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
-
-    krig_fig = go.Figure([
-                              go.Surface(x=grid_x, y=grid_y, z=kriging(value, variable),
-                              cmax=df[variable].mean()+(df[variable].std()*2),
-                              cmin=df[variable].mean()-(df[variable].std()*2),
-                              colorscale="RdBu" if variable !="Temperatura" else "RdBu_r",
-                              uirevision=True,
-                              hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}',
-                              )
-                          ], layout=go.Layout(uirevision=True))
-
-    #adding the traces
-    krig_fig.add_trace(go.Scatter3d(x=[-73.608872], y=[-42.724906], z=[df.loc[df["Estación"]=="E5"][variable].mean()],
-                                    name="CENTRO", mode="markers",
-                                    hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
-    add_traces("E1", krig_fig, variable)
-    add_traces("E2", krig_fig, variable)
-    add_traces("E3", krig_fig, variable)
-    add_traces("E4", krig_fig, variable)
-    add_traces("E5", krig_fig, variable)
-    add_traces("E6", krig_fig, variable)
-    add_traces("E7", krig_fig, variable)
-    add_traces("E8", krig_fig, variable)
-    krig_fig.update_layout(margin={"r":0,"t":50,"l":0,"b":0},
-                           legend=dict(
-                            yanchor="top",
-                            y=0.99,
-                            xanchor="left",
-                            x=0.01
-                            ),
-                            title=f"{variable} a los {value} metros",
-                            width=900,
-                            height=600,
-                            scene=dict(
-                                zaxis=dict(title=variable),
-                                xaxis=dict(title="Longitud"),
-                                yaxis=dict(title="Latitud"),
-                                aspectratio=dict(x=1, y=1, z=1),
-                                ),
-                    )
-    return krig_fig
+# #kriging callback
+# @app.callback(Output("kriging-fig","figure"),
+#               [Input("depth-slider","value"),
+#                Input("header-tab","active_tab")])
+# def kriging_fig_maker(value, variable):
+#     variable_dict = {"oximgl-tab":"Oxígeno (mg/L)",
+#                     "oxisat-tab":"Oxígeno (%Sat)",
+#                     "oxiteo-tab":"Oxígeno",
+#                     "temp-tab":"Temperatura",
+#                     "salin-tab":"Salinidad",
+#                     "sigmat-tab":"Densidad (sigma-t)",
+#                     "aou-tab":"AOU",
+#                     "fluo-tab":"Fluorescencia",
+#                     "sigma-t-tab":"Densidad (sigma-t)",
+#                     "aou-tab":"AOU"
+#                     }
+#     variable = variable_dict[variable]
+#     #add profiles as traces
+#     def add_traces(estacion, fig, variable):
+#         dff = df.loc[(df["Estación"]==estacion)&(df["Profundidad"]>=-80)]
+#         return fig.add_trace(go.Scatter3d(x=dff["Longitud"], y=dff["Latitud"], z=dff[variable], mode="lines", name=estacion,
+#                                          hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
+#
+#     krig_fig = go.Figure([
+#                               go.Surface(x=grid_x, y=grid_y, z=kriging(value, variable),
+#                               cmax=df[variable].mean()+(df[variable].std()*2),
+#                               cmin=df[variable].mean()-(df[variable].std()*2),
+#                               colorscale="RdBu" if variable !="Temperatura" else "RdBu_r",
+#                               uirevision=True,
+#                               hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}',
+#                               )
+#                           ], layout=go.Layout(uirevision=True))
+#
+#     #adding the traces
+#     krig_fig.add_trace(go.Scatter3d(x=[-73.608872], y=[-42.724906], z=[df.loc[df["Estación"]=="E5"][variable].mean()],
+#                                     name="CENTRO", mode="markers",
+#                                     hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
+#     add_traces("E1", krig_fig, variable)
+#     add_traces("E2", krig_fig, variable)
+#     add_traces("E3", krig_fig, variable)
+#     add_traces("E4", krig_fig, variable)
+#     add_traces("E5", krig_fig, variable)
+#     add_traces("E6", krig_fig, variable)
+#     add_traces("E7", krig_fig, variable)
+#     add_traces("E8", krig_fig, variable)
+#     krig_fig.update_layout(margin={"r":0,"t":50,"l":0,"b":0},
+#                            legend=dict(
+#                             yanchor="top",
+#                             y=0.99,
+#                             xanchor="left",
+#                             x=0.01
+#                             ),
+#                             title=f"{variable} a los {value} metros",
+#                             width=900,
+#                             height=600,
+#                             scene=dict(
+#                                 zaxis=dict(title=variable),
+#                                 xaxis=dict(title="Longitud"),
+#                                 yaxis=dict(title="Latitud"),
+#                                 aspectratio=dict(x=1, y=1, z=1),
+#                                 ),
+#                     )
+#     return krig_fig
 if __name__ == '__main__':
     app.run_server(debug=True)
