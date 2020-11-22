@@ -23,8 +23,7 @@ mapbox_style="mapbox://styles/ritmandotpy/cke3b197900zr19oy9oh1curh"
 mapbox_style_sat = "mapbox://styles/ritmandotpy/ckf2s0kv56oxm19os5sfh8lfy"
 
 #reading the data
-df = pd.read_csv("data/PERFILES CTDO PILPILEHUE.csv")
-df= pd.read_csv("data/test.csv", encoding="latin1")
+df= pd.read_csv("data/nov_2020.csv", encoding="latin1")
 #
 # for estacion in df_oct["Estación"].unique():
 #     df_oct.loc[df_oct["Estación"]==estacion, "Latitud"] = df.loc[df["Estación"]==estacion]["Latitud"]
@@ -58,7 +57,7 @@ yline = np.linspace(SE[1], NO[1], int(diff[1]/0.01))
 grid_x,grid_y = np.meshgrid(xline, yline)
 #krigging as a function
 def kriging(depth, variable):
-    dff2 = df[df["Profundidad"]== depth][[variable, "Latitud", "Longitud"]]
+    dff2 = df[df["Profundidad (m)"]== depth][[variable, "Latitud", "Longitud"]]
     #ordinary kriging
     ok= OrdinaryKriging(dff2["Longitud"], dff2["Latitud"], dff2[variable], variogram_model='gaussian',
                        verbose=False)
@@ -217,10 +216,10 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
                         "aou-tab":"AOU"
                         }
         variable = variable_dict[variable]
-        dff = df.loc[df["Estación"]==clickdata][[variable, "Profundidad"]]
+        dff = df.loc[df["Estación"]==clickdata][[variable, "Profundidad (m)"]]
 
         fig2d = go.Figure(data=go.Scatter(x=dff[variable],
-                                          y=dff["Profundidad"],
+                                          y=dff["Profundidad (m)"],
                                           mode="markers+lines"))
         fig2d.update_layout(title=f"Perfil de {variable}: {clickdata}", margin={"r":0,"t":30,"l":0,"b":0},
                             xaxis_title=variable, yaxis_title="Profundidad")
@@ -239,22 +238,22 @@ def perfiles_scatter_maker(selectedData, clickData, variable):
                         "salin-tab":"Salinidad (PSU)",
                         "sigmat-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU",
-                        "fluo-tab":"Fluorescencia (mg/m3) ",
+                        "fluo-tab":"Fluorescencia (mg/m3)",
                         "sigma-t-tab":"Densidad (sigma-t)",
                         "aou-tab":"AOU"
                         }
         variable = variable_dict[variable]
-        dff = df.loc[df["Estación"].isin([selected])][[variable, "Profundidad"]]
+        dff = df.loc[df["Estación"].isin([selected])][[variable, "Profundidad (m)"]]
 
         fig3d = go.Figure(data=go.Scatter3d())
         title = []
         for point in selectedData['points']:
             point = point["customdata"]
             title.append(point)#the title of the graph
-            tdf = df.loc[df["Estación"]==point][[variable, "Profundidad", "Latitud"]]
+            tdf = df.loc[df["Estación"]==point][[variable, "Profundidad (m)", "Latitud"]]
             fig3d.add_trace(go.Scatter3d(x=tdf[variable],
                                  y=tdf["Latitud"],
-                                 z=tdf["Profundidad"],
+                                 z=tdf["Profundidad (m)"],
                                  mode="markers+lines",
                                  marker={"size":5, "opacity":0.5},
                                  name=point
@@ -294,7 +293,7 @@ def kriging_fig_maker(value, variable):
     variable = variable_dict[variable]
     #add profiles as traces
     def add_traces(estacion, fig, variable):
-        dff = df.loc[(df["Estación"]==estacion)&(df["Profundidad"]>=-80)]
+        dff = df.loc[(df["Estación"]==estacion)&(df["Profundidad (m)"]>=-80)]
         return fig.add_trace(go.Scatter3d(x=dff["Longitud"], y=dff["Latitud"], z=dff[variable], mode="lines", name=estacion,
                                          hovertemplate= 'Latitud: %{y:.2f} <br> Longitud: %{x:.2f} <br> z: %{z:.2f}'))
 
